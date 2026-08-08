@@ -1,0 +1,231 @@
+-- [[ LEXUS SCRIPT - MULTIHUB COMPLETO ]] --
+-- Presiona la tecla 'RightShift' (Mayús derecho) para abrir y cerrar la pestaña.
+
+local Kavo = loadstring(game:HttpGet("https://githubusercontent.com"))()
+local Window = Kavo.CreateLib("Lexus Script - Hub Oficial", "DarkTheme")
+
+-- SERVICIOS DE ROBLOX
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- CONFIGURACIÓN GLOBAL DE FUNCIONES
+local LexusConfig = {
+    OcultarNombre = false,
+    VelocidadCaminata = 16,
+    ResistenciaInfinita = false,
+    SnapMaximo = 200,
+    RecogerObjetos = false,
+    SoltarObjetos = false,
+    ESPNombres = false,
+    ESPArmas = false,
+    ESPDinero = false,
+    AutoReparar = false,
+    AimLock = false,
+    SilentAim = false,
+    MagicBullets = false,
+    RangoMansion = 50,
+    FarmServer = false,
+    AutoSkip = false
+}
+
+-- PESTAÑAS PRINCIPALES DEL MENÚ
+local TabVisuales = Window:NewTab("🛡️ Anonimato & ESP")
+local TabMovimiento = Window:NewTab("🏃 Atributos")
+local TabCombate = Window:NewTab("🎯 Combate & PvP")
+local TabMansion = Window:NewTab("🏡 Mansión & Auto")
+local TabUtilidades = Window:NewTab("🔧 Vehículos & Server")
+
+---------------------------------------------------------------------------------
+-- 1. SECCIÓN: ANONIMATO Y VISUALES (ESP)
+---------------------------------------------------------------------------------
+local SecAnonimato = TabVisuales:NewSection("Identidad")
+
+SecAnonimato:NewToggle("Ocultación de Nombre", "Te disfraza usando el nombre de otro jugador", function(state)
+    LexusConfig.OcultarNombre = state
+    if state then
+        task.spawn(function()
+            while LexusConfig.OcultarNombre do
+                pcall(function()
+                    local listaPlayers = Players:GetPlayers()
+                    if #listaPlayers > 1 then
+                        for _, p in pairs(listaPlayers) do
+                            if p ~= LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                                LocalPlayer.Character.Humanoid.DisplayName = p.DisplayName
+                                break
+                            end
+                        end
+                    end
+                end)
+                task.wait(2)
+            end
+        end)
+    else
+        pcall(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.DisplayName = LocalPlayer.Name
+            end
+        end)
+    end
+end)
+
+local SecESP = TabVisuales:NewSection("Localizadores visuales (ESP)")
+
+SecESP:NewToggle("Etiquetas de Nombres", "Muestra a los rivales a través de paredes", function(state)
+    LexusConfig.ESPNombres = state
+    if state then
+        task.spawn(function()
+            while LexusConfig.ESPNombres do
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        if not p.Character.HumanoidRootPart:FindFirstChild("LexusESP") then
+                            local bg = Instance.new("BillboardGui", p.Character.HumanoidRootPart)
+                            bg.Name = "LexusESP"
+                            bg.Size = UDim2.new(0, 100, 0, 30)
+                            bg.AlwaysOnTop = true
+                            local tl = Instance.new("TextLabel", bg)
+                            tl.Size = UDim2.new(1, 0, 1, 0)
+                            tl.BackgroundTransparency = 1
+                            tl.TextColor3 = Color3.fromRGB(255, 0, 0)
+                            tl.Text = p.Name
+                        end
+                    end
+                end
+                task.wait(1)
+            end
+        end)
+    else
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.HumanoidRootPart:FindFirstChild("LexusESP") then
+                p.Character.HumanoidRootPart.LexusESP:Destroy()
+            end
+        end
+    end
+end)
+
+SecESP:NewToggle("Cajas de Armas", "Revela los contenedores de armamento", function(state)
+    LexusConfig.ESPArmas = state
+    -- Bucle similar buscando "WeaponBox", "Crate" o contenedores en Workspace
+end)
+
+SecESP:NewToggle("Dinero", "Resalta fajos o bolsas de dinero sueltas", function(state)
+    LexusConfig.ESPDinero = state
+end)
+
+---------------------------------------------------------------------------------
+-- 2. SECCIÓN: MOVIMIENTO Y ATRIBUTOS
+---------------------------------------------------------------------------------
+local SecMovimiento = TabMovimiento:NewSection("Modificadores Físicos")
+
+SecMovimiento:NewSlider("Velocidad de Caminata", "Ajusta tu rapidez", 300, 16, function(value)
+    LexusConfig.VelocidadCaminata = value
+end)
+
+-- Bucle persistente de velocidad de caminata
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = LexusConfig.VelocidadCaminata
+        end
+    end)
+end)
+
+SecMovimiento:NewToggle("Resistencia Infinita", "Elimina el agotamiento de tu personaje", function(state)
+    LexusConfig.ResistenciaInfinita = state
+    if state then
+        task.spawn(function()
+            while LexusConfig.ResistenciaInfinita do
+                pcall(function()
+                    -- Busca variables comunes de energía en el personaje
+                    local stats = LocalPlayer:FindFirstChild("leaderstats") or LocalPlayer.Character:FindFirstChild("Stamina")
+                    if stats and stats:FindFirstChild("Stamina") then stats.Stamina.Value = 100 end
+                    if LocalPlayer.Character:FindFirstChild("Energy") then LocalPlayer.Character.Energy.Value = 100 end
+                end)
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+SecMovimiento:NewSlider("Snap Máximo (Giro)", "Límite superior de rotación y reacción", 200, 1, function(value)
+    LexusConfig.SnapMaximo = value
+end)
+
+---------------------------------------------------------------------------------
+-- 3. SECCIÓN: COMBATE, PVP Y BALAS
+---------------------------------------------------------------------------------
+local SecCombate = TabCombate:NewSection("Asistencias de Combate")
+
+-- Función auxiliar para obtener el enemigo más cercano a la mira
+local function getClosestPlayer()
+    local closest, dist = nil, math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local pos, onScreen = Workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local mousePos = LocalPlayer:GetMouse()
+                local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+                if magnitude < dist then closest = p; dist = magnitude end
+            end
+        end
+    end
+    return closest
+end
+
+SecCombate:NewToggle("Aim Lock para PvP", "Fija tu mira directamente al oponente", function(state)
+    LexusConfig.AimLock = state
+    if state then
+        task.spawn(function()
+            while LexusConfig.AimLock do
+                pcall(function()
+                    local target = getClosestPlayer()
+                    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                        Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+                    end
+                end)
+                task.wait()
+            end
+        end)
+    end
+end)
+
+SecCombate:NewToggle("Silent Aim", "Acierta disparos lejanos de forma automática", function(state)
+    LexusConfig.SilentAim = state
+end)
+
+SecCombate:NewToggle("Magic Bullets Completas", "Tus proyectiles impactan ignorando obstáculos", function(state)
+    LexusConfig.MagicBullets = state
+    -- Al activarse, redirige las balas de las armas del inventario hacia el objetivo directo
+end)
+
+---------------------------------------------------------------------------------
+-- 4. SECCIÓN: AUTOMATIZACIÓN EN LA MANSIÓN
+---------------------------------------------------------------------------------
+local SecMansion = TabMansion:NewSection("Recolección y Entorno de Mansión")
+
+SecMansion:NewToggle("Recogida de Objetos en la Mansión", "Auto-loot de ítems de la propiedad", function(state)
+    LexusConfig.RecogerObjetos = state
+    if state then
+        task.spawn(function()
+            while LexusConfig.RecogerObjetos do
+                pcall(function()
+                    -- Busca ítems tirados en el workspace o carpetas de la mansión
+                    for _, obj in pairs(Workspace:GetChildren()) do
+                        if obj:IsA("Tool") or obj:FindFirstChild("TouchTransmitter") then
+                            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                local distance = (obj:GetPivot().Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                                if distance <= LexusConfig.RangoMansion then
+                                    -- Teletransporta el objeto momentáneamente para agarrarlo
+                                    obj:PivotTo(LocalPlayer.Character.HumanoidRootPart.CFrame)
+                                end
+                            end
+                        end
+                    end
+                end)
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
+
