@@ -1,0 +1,139 @@
+-- LEXUS ELITE V13 | FINAL (FOV RAINBOW + TRACERS + APAGADO)
+local P = game:GetService("Players")
+local RS = game:GetService("RunService")
+local Cam = workspace.CurrentCamera
+local LP = P.LocalPlayer
+
+local MaxDist = 80   
+local MinFOV = 120   
+
+-- Variable de control para apagar o encender el script por completo
+_G.LexusActive = true
+
+-- Círculo de FOV fijo con efecto RGB (Rainbow) en la pantalla
+local FOVGui = Instance.new("ScreenGui", game.CoreGui)
+FOVGui.Name = "LexusFOVDisplay"
+local FOFCircle = Instance.new("Frame", FOVGui)
+FOFCircle.Size = UDim2.new(0, MinFOV * 2, 0, MinFOV * 2)
+FOFCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOFCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOFCircle.BackgroundTransparency = 1
+local UIC = Instance.new("UICorner", FOFCircle)
+UIC.CornerRadius = UDim.new(1, 0)
+local UIS = Instance.new("UIStroke", FOFCircle)
+UIS.Thickness = 2
+
+-- Bucle Rainbow para el FOV
+task.spawn(function()
+    while FOFCircle and FOFCircle.Parent and _G.LexusActive do
+        for i = 0, 1, 0.005 do
+            if not _G.LexusActive then break end
+            UIS.Color = Color3.fromHSV(i, 1, 1)
+            task.wait(0.03)
+        end
+    end
+end)
+
+-- Botón flotante chiquito en la pantalla para APAGAR o ENCENDER al instante
+local ToggleGui = Instance.new("ScreenGui", game.CoreGui)
+ToggleGui.Name = "LexusToggleBtn"
+local OffBtn = Instance.new("TextButton", ToggleGui)
+OffBtn.Size = UDim2.new(0, 45, 0, 45)
+OffBtn.Position = UDim2.new(0.02, 0, 0.25, 0)
+OffBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+OffBtn.Text = "OFF"
+OffBtn.TextColor3 = Color3.fromRGB(255, 105, 180)
+OffBtn.Font = Enum.Font.GothamBold
+OffBtn.TextSize = 12
+OffBtn.Draggable = true
+Instance.new("UICorner", OffBtn).CornerRadius = UDim.new(1, 0)
+local OffStroke = Instance.new("UIStroke", OffBtn)
+OffStroke.Color = Color3.fromRGB(255, 105, 180)
+OffStroke.Thickness = 1.5
+
+-- Función del botón de Apagado total
+OffBtn.MouseButton1Click:Connect(function()
+    _G.LexusActive = not _G.LexusActive
+    if _G.LexusActive then
+        OffBtn.Text = "OFF"
+        OffBtn.TextColor3 = Color3.fromRGB(255, 105, 180)
+        FOVGui.Enabled = true
+    else
+        OffBtn.Text = "ON"
+        OffBtn.TextColor3 = Color3.fromRGB(0, 255, 0)
+        FOVGui.Enabled = false
+        -- Limpiar elementos visuales al apagar
+        for _, p in pairs(P:GetPlayers()) do
+            if p.Character then
+                if p.Character:FindFirstChild("LexusTracerActive") then p.Character.LexusTracerActive:Destroy() end
+            end
+        end
+    end
+end)
+
+RS.RenderStepped:Connect(function()
+    if not _G.LexusActive then return end
+
+    local target = nil
+    local closestDist = MinFOV
+
+    for _, v in pairs(P:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
+            local hrp = v.Character.HumanoidRootPart
+            local head = v.Character.Head
+            local pos, vis = Cam:WorldToViewportPoint(hrp.Position)
+            local dist = (hrp.Position - Cam.CFrame.Position).Magnitude
+            
+            -- Tracers finos hacia los enemigos cercanos
+            local tracerGui = v.Character:FindFirstChild("LexusTracerActive")
+            if vis and dist <= MaxDist and _G.LexusActive then
+                if not tracerGui then
+                    local sg = Instance.new("ScreenGui", game.CoreGui)
+                    sg.Name = "LexusTracerActive"
+                    local line = Instance.new("Frame", sg)
+                    line.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+                    line.BorderSizePixel = 0
+                    
+                    task.spawn(function()
+                        while _G.LexusActive and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 and (hrp.Position - Cam.CFrame.Position).Magnitude <= MaxDist do
+                            local pPos, pVis = Cam:WorldToViewportPoint(hrp.Position)
+                            if pVis then
+                                local centerScreen = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y)
+                                local targetPos = Vector2.new(pPos.X, pPos.Y)
+                                local magnitude = (targetPos - centerScreen).Magnitude
+                                line.Size = UDim2.new(0, 1.5, 0, magnitude)
+                                line.Position = UDim2.new(0, centerScreen.X, 0, centerScreen.Y)
+                                line.AnchorPoint = Vector2.new(0.5, 1)
+                                line.Rotation = math.deg(math.atan2(targetPos.Y - centerScreen.Y, targetPos.X - centerScreen.X)) + 90
+                                line.Visible = true
+                            else
+                                line.Visible = false
+                            end
+                            task.wait()
+                        end
+                        sg:Destroy()
+                    end)
+                end
+            else
+                if v.Character and v.Character:FindFirstChild("LexusTracerActive") then
+                    v.Character.LexusTracerActive:Destroy()
+                end
+            end
+
+            -- Filtro de cercas para el Aim y Auto Fire dentro del FOV
+            if vis and dist <= MaxDist then
+                local mouseDist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Cam.ViewportSize.X/2, Cam.ViewportSize.Y/2)).Magnitude
+                if mouseDist < closestDist then
+                    closestDist = mouseDist
+                    target = head
+                end
+            end
+        else
+            if v.Character and v.Character:FindFirstChild("LexusTracerActive") then v.Character.LexusTracerActive:Destroy() end
+        end
+    end
+
+    if target and _G.LexusActive then
+        Cam.CFrame = CFrame.new(Cam.CFrame.Position, target.Position)
+        local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+        if tool
